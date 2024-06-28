@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:wear/wear.dart';
 
@@ -7,11 +6,9 @@ void main() {
   runApp(const MyApp());
 }
 
-//////  Cronometro
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -43,8 +40,6 @@ class WatchScreen extends StatelessWidget {
 }
 
 class TimerScreen extends StatefulWidget {
-  // const TimerScreen({super.key});
-  
   final WearMode mode;
 
   const TimerScreen(this.mode, {super.key});
@@ -54,41 +49,43 @@ class TimerScreen extends StatefulWidget {
 }
 
 class _TimerScreenState extends State<TimerScreen> {
-  late Timer _timer;
-  late int _count;
-  late String _strCount;
-  late String _status;
-
-  @override
-  void initState() {
-    _count = 0;
-    _strCount = "00:00:00";
-    _status = "Start";
-    super.initState();
-  }
+  Timer? _timer;
+  int _count = 0;
+  String _strCount = "00:00:00";
+  String _status = "Start";
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: widget.mode == WearMode.active ? Colors.white : Colors.black,
+      backgroundColor: widget.mode == WearMode.active ? Color.fromARGB(255, 0, 34, 88) : Colors.black,
       body: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Center(
-              child: FlutterLogo(),
+            Center(
+              child: Image.asset(
+                widget.mode == WearMode.active
+                    ? 'assets/img/loboActive.png'
+                    : 'assets/img/loboAmbient.png',
+                width: 130,
+                height: 130,
+              ),
             ),
-            const SizedBox(height: 4.0),
+            const SizedBox(height: 2.0),
             Center(
               child: Text(
                 _strCount,
                 style: TextStyle(
-                    color: widget.mode == WearMode.active
-                        ? Colors.black
-                        : Colors.white),
+                  color: widget.mode == WearMode.active ? Color.fromARGB(255, 182, 3, 15) : Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold
+                ),
               ),
             ),
-            _buildWidgetButton(),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              child: _buildWidgetButton(),
+            ),
           ],
         ),
       ),
@@ -97,64 +94,97 @@ class _TimerScreenState extends State<TimerScreen> {
 
   Widget _buildWidgetButton() {
     if (widget.mode == WearMode.active) {
-      return Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: <Widget>[
-          ElevatedButton(
-            // color: Colors.blue,
-            // textColor: Colors.white,
-            onPressed: () {
-              if (_status == "Start") {
-                _startTimer();
-              } else if (_status == "Stop") {
-                _timer.cancel();
-                setState(() {
-                  _status = "Continue";
-                });
-              } else if (_status == "Continue") {
-                _startTimer();
-              }
-            },
-            child: Text(_status),
+      if (_status == "Start" || _status == "Continue") {
+        return Container(
+          key: const ValueKey("StartButton"),
+          padding: const EdgeInsets.all(0.1), 
+          decoration: const BoxDecoration(
+            color: Color.fromARGB(255, 7, 161, 140),
+            shape: BoxShape.circle,
           ),
-          ElevatedButton(
-            // color: Colors.blue,
-            // textColor: Colors.white,
-            onPressed: () {
-              // ignore: unnecessary_null_comparison
-              if (_timer != null) {
-                _timer.cancel();
-                setState(() {
-                  _count = 0;
-                  _strCount = "00:00:00";
-                  _status = "Start";
-                });
-              }
-            },
-            child: const Text("Reset"),
+          child: IconButton(
+            onPressed: _handleStartStopContinue,
+            icon: const Icon(Icons.play_arrow, color: Color.fromARGB(255, 182, 3, 15)), 
           ),
-        ],
-      );
+        );
+      } else {
+        return Row(
+          key: const ValueKey("ControlButtons"),
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            Container(
+              padding: const EdgeInsets.all(0.1),
+              decoration: const BoxDecoration(
+                color: Color.fromARGB(255, 7, 161, 140),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _handleStartStopContinue,
+                icon: const Icon(Icons.pause, color: Color.fromARGB(255, 182, 3, 15)), 
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(0.1), 
+              decoration: const BoxDecoration(
+                color: Color.fromARGB(255, 7, 161, 140),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _handleReset,
+                icon: const Icon(Icons.refresh, color: Color.fromARGB(255, 182, 3, 15)), 
+              ),
+            ),
+          ],
+        );
+      }
     } else {
       return Container();
     }
   }
 
+  void _handleStartStopContinue() {
+    if (_status == "Start" || _status == "Continue") {
+      _startTimer();
+    } else if (_status == "Stop") {
+      _timer?.cancel();
+      setState(() {
+        _status = "Continue";
+      });
+    }
+  }
+
+  void _handleReset() {
+    _timer?.cancel();
+    setState(() {
+      _count = 0;
+      _strCount = "00:00:00";
+      _status = "Start";
+    });
+  }
+
   void _startTimer() {
-    _status = "Stop";
+    setState(() {
+      _status = "Stop";
+    });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _count += 1;
-        int hour = _count ~/ 3600;
-        int minute = (_count % 3600) ~/ 60;
-        int second = (_count % 3600) % 60;
-        _strCount = hour < 10 ? "0$hour" : "$hour";
-        _strCount += ":";
-        _strCount += minute < 10 ? "0$minute" : "$minute";
-        _strCount += ":";
-        _strCount += second < 10 ? "0$second" : "$second";
+        _strCount = _formatTime(_count);
       });
     });
+  }
+
+  String _formatTime(int count) {
+    int hour = count ~/ 3600;
+    int minute = (count % 3600) ~/ 60;
+    int second = (count % 3600) % 60;
+    return "${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}:${second.toString().padLeft(2, '0')}";
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 }
